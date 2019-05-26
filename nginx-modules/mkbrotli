@@ -1,0 +1,30 @@
+#!/bin/bash
+# By gravity@majlovesreg.one
+
+# For custom NGINX version, use:
+# ngver=1.14.2
+# For automated detection of installed NGINX, use:
+ngver=$(nginx -v 2>&1 | grep -oP '(?<=/).*')
+
+moddir=/usr/share/nginx/modules/
+
+# Install needed development packages if not yet installed in the system
+# sudo apt -y install git libpcre3 libpcre3-dev zlib1g zlib1g-dev openssl libssl-dev
+
+# Download and unpack NGINX
+wget https://nginx.org/download/nginx-${ngver}.tar.gz && tar zxf nginx-${ngver}.tar.gz && rm nginx-${ngver}.tar.gz
+
+# Download, initialize, and make Brotli for NGINX
+git clone https://github.com/eustas/ngx_brotli.git
+cd ngx_brotli && git submodule update --init && cd ../nginx-${ngver}
+./configure --with-compat --add-dynamic-module=../ngx_brotli
+make modules
+
+# Copy modules to you modules directory, i.e. /usr/share/nginx/modules/
+sudo cp objs/*.so ${moddir}
+sudo chmod 644 ${moddir}ngx_http_brotli_filter_module.so
+sudo chmod 644 ${moddir}ngx_http_brotli_static_module.so
+
+# Start or reload NGINX
+systemctl is-active --quiet nginx && sudo systemctl --no-pager reload nginx || sudo systemctl --no-pager start nginx
+systemctl --no-pager status nginx
