@@ -2,8 +2,6 @@
 
 # https://www.majlovesreg.one/tag/code/
 # https://www.majlovesreg.one/adding-brotli-to-a-built-nginx-instance
-
-# Fork this on GitHub:
 # https://github.com/majal/maj-server/tree/master/nginx-modules-brotli
 
 # Install needed development packages if not yet installed in the system
