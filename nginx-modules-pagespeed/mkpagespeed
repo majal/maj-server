@@ -1,0 +1,62 @@
+#!/bin/bash
+
+# https://www.majlovesreg.one/tag/code/
+# https://www.majlovesreg.one/adding-pagespeed-to-a-running-nginx-instance
+# https://github.com/majal/maj-server/tree/master/nginx-modules-pagespeed
+
+# For predefined NGINX version, use:
+# ngver=1.17.1
+ 
+# For passing the version via the command line (i.e.: user@server:~$ ./mkbrotli 1.17.1), use:
+ngver=$1
+ 
+# For automated detection of currently installed NGINX version (not to be used for auto-updating, see hooks in post), use:
+# ngver=$(nginx -v 2>&1 | grep -o '[0-9\.]*')
+ 
+# To manually set NGINX modules directory:
+# moddir=/path/to/modules/directory
+ 
+# To automatically select NGINX modules directory:
+[ -d /usr/share/nginx/modules ] && moddir=/usr/share/nginx/modules
+[ -d $(nginx -V 2>&1 | grep -o 'prefix=[^ ]*' | sed 's/prefix=//')/modules ] && moddir=$(nginx -V 2>&1 | grep -o 'prefix=[^ ]*' | sed 's/prefix=//')/modules
+[ -d $(nginx -V 2>&1 | grep -o 'modules-path=[^ ]*' | sed 's/modules-path=//') ] && moddir=$(nginx -V 2>&1 | grep -o 'modules-path=[^ ]*' | sed 's/modules-path=//')
+[ $moddir ] || { echo '!! missing modules directory, exiting...'; exit 1; }
+ 
+# Set temporary directory and build on it
+builddir=$(mktemp -d)
+cd ${builddir}
+ 
+echo
+echo '################################################################################'
+echo
+echo "Building PageSpeed for NGINX $ngver"
+echo "Temporary build directory: $builddir"
+echo "Modules directory: $moddir"
+echo
+
+# Use script provided by PageSpeed
+nice -n 19 ionice -c 3 bash <(curl -f -L -sS https://ngxpagespeed.com/install) -n ${ngver} -m -b ${builddir} -a '--with-compat' -y || { echo '!! error with module creation, exiting...'; exit 1; }
+
+# Replace ngx_pagespeed.so if exists, otherwise, copy it
+[ -f ${moddir}/ngx_pagespeed.so ] && sudo mv ${moddir}/ngx_pagespeed.so ${moddir}/ngx_pagespeed.so.old
+sudo chmod 644 /usr/local/nginx/modules/ngx_pagespeed.so || { echo '!! error with module path, exiting...'; exit 2; }
+sudo cp /usr/local/nginx/modules/ngx_pagespeed.so ${moddir}/
+
+# Clean up build files
+cd ${builddir}/..
+sudo rm -r /usr/local/nginx
+rm -r ${builddir}
+
+echo
+echo "Sucessfully built PageSpeed for NGINX $ngver in $moddir"
+echo
+echo '################################################################################'
+echo
+
+# Start/restart NGINX.
+# Not recommended if script is hooked since NGINX is automatically restarted by the package manager (e.g. apt) after an upgrade.
+# Restarting NGINX before the upgrade could cause a module version mismatch.
+# sudo nginx -t && { systemctl is-active nginx && sudo systemctl restart nginx || sudo systemctl start nginx; } || true
+# echo
+# systemctl --no-pager status nginx
+# echo
