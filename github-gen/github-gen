@@ -1,0 +1,32 @@
+#!/bin/bash
+
+echo "SSH Gen, accept all defaults"
+ssh-keygen -t rsa -b 4096
+echo
+echo "Copy this to SSH keys on https://github.com/settings/keys"
+cat ~/.ssh/id_rsa.pub
+echo
+
+echo "RSA, use email: 4157956+majal@users.noreply.github.com:"
+gpg --full-generate-key
+echo
+
+echo "If only one GPG key, copy this to GPG keys on https://github.com/settings/keys"
+firstkey=$(gpg --list-secret-keys --keyid-format LONG | grep sec | grep -o "/[A-F0-9]\+" | tr -d '/')
+gpg --armor --export "${firstkey}"
+echo
+
+echo "Updating and installing git..."
+sudo apt update
+sudo apt install git
+git config --global user.name "Majal Mirasol"
+git config --global user.email "4157956+majal@users.noreply.github.com"
+git config --global user.signingkey "${firstkey}"
+git config commit.gpgsign true
+echo
+
+echo "Adding environment variables..."
+echo 'export GIT_SSH_COMMAND="ssh -p22"' >> $HOME/.profile
+echo
+
+echo "Set up done, enjoy!"
