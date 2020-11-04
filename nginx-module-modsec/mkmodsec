@@ -3,6 +3,7 @@
 # https://www.majlovesreg.one/tag/code/
 # https://www.majlovesreg.one/adding-brotli-to-a-built-nginx-instance
 # https://github.com/majal/maj-server/tree/master/nginx-modules-brotli
+# Thanks to https://github.com/benyaminl for starting mkmodsec
 
 # Install needed development packages if not yet installed in the system
 # sudo apt -y install git libpcre3 libpcre3-dev zlib1g zlib1g-dev openssl libssl-dev
@@ -12,6 +13,8 @@
 
 # For passing the version via the command line (i.e.: user@server:~$ ./mkbrotli 1.17.1), use:
 ngver=$1
+
+[ "${ngver}" ] || { echo; echo "Please set NGINX version. Exiting..."; echo; exit 7; }
 
 # For automated detection of currently installed NGINX version (not to be used for auto-updating, see hooks in post), use:
 # ngver=$(nginx -v 2>&1 | grep -o '[0-9\.]*')
@@ -39,26 +42,13 @@ cd "${builddir}"
 echo
 echo '################################################################################'
 echo
-echo "Building Brotli for NGINX ${ngver}"
+echo "Building ModSec for NGINX ${ngver}"
 echo "Temporary build directory: ${builddir}"
 echo "Modules directory: ${moddir}"
 echo
 
 # Download and unpack NGINX
 wget https://nginx.org/download/nginx-${ngver}.tar.gz && { tar zxf nginx-${ngver}.tar.gz && rm nginx-${ngver}.tar.gz; } || { echo '!! download failed, exiting...'; exit 2; }
-
-# Download, initialize, and make Brotli dynamic modules
-# git clone https://github.com/google/ngx_brotli.git
-# cd ngx_brotli && git submodule update --init && cd ../nginx-${ngver}
-# [ "${confparams}" ] && nice -n 19 ionice -c 3 "./configure --add-dynamic-module=../ngx_brotli ${confparams}" || nice -n 19 ionice -c 3 ./configure --with-compat --add-dynamic-module=../ngx_brotli
-# nice -n 19 ionice -c 3 make modules || { echo '!! configure or make failed, exiting...'; exit 4; }
-# 
-# # Replace Brotli in modules directory
-# [ -f "${moddir}/ngx_http_brotli_filter_module.so" ] && sudo mv "${moddir}/ngx_http_brotli_filter_module.so" "${moddir}/ngx_http_brotli_filter_module.so.old"
-# [ -f "${moddir}/ngx_http_brotli_static_module.so" ] && sudo mv "${moddir}/ngx_http_brotli_static_module.so" "${moddir}/ngx_http_brotli_static_module.so.old"
-# sudo cp objs/*.so "${moddir}/"
-# sudo chmod 644 "${moddir}/ngx_http_brotli_filter_module.so" || { echo '!! module permissions failed, exiting...'; exit 5; }
-# sudo chmod 644 "${moddir}/ngx_http_brotli_static_module.so" || { echo '!! module permissions failed, exiting...'; exit 6; }
 
 # Download ModSecurity and Install 
 # echo "Installing and setting up ModSecurity"; 
@@ -78,8 +68,6 @@ nice -n 19 ionice -c 3 make modules || { echo '!! configure or make failed, exit
 sudo cp objs/*.so "${moddir}/"
 sudo chmod 644 "${moddir}/ngx_http_modsecurity_module.so" || { echo '!! module permissions failed, exiting...'; exit 5; }
 
-
-#
 # Clean up build files
 cd "${builddir}/.."
 sudo rm -r "${builddir}/ModSecurity-nginx"
