@@ -16,6 +16,8 @@ ngver=$1
 # For automated detection of currently installed NGINX version (not to be used for auto-updating, see hooks in post), use:
 # ngver=$(nginx -v 2>&1 | grep -o '[0-9\.]*')
 
+[ "${ngver}" ] || { echo; echo "Please set NGINX version. Exiting..."; echo; exit 7; }
+
 # Get configure parameters of installed NGINX. Not needed if NGINX was configured '--with-compat'.
 # Uncomment one of the lines below if the script sucessfully builds modules but NGINX throws a "not binary compatible" error.
 # confparams=$(nginx -V 2>&1 | grep -o -- '--prefix='.*)
